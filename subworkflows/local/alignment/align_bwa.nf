@@ -2,7 +2,7 @@
 // Map to reference, fetch stats for each demultiplexed read pair, merge, mark duplicates, and index.
 //
 
-include { BWAMEM2_MEM                              } from '../../../modules/nf-core/bwamem2/mem/main'
+include { BWA_MEM                              } from '../../../modules/nf-core/bwa/mem/main'
 include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_ALIGN   } from '../../../modules/nf-core/samtools/index/main'
 include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_MARKDUP } from '../../../modules/nf-core/samtools/index/main'
 include { SAMTOOLS_STATS                           } from '../../../modules/nf-core/samtools/stats/main'
@@ -10,10 +10,10 @@ include { SAMTOOLS_MERGE                           } from '../../../modules/nf-c
 include { PICARD_MARKDUPLICATES as MARKDUPLICATES  } from '../../../modules/nf-core/picard/markduplicates/main'
 
 
-workflow ALIGN_BWAMEM2 {
+workflow ALIGN_BWAMEM {
     take:
         ch_reads_input   // channel: [mandatory] [ val(meta), path(reads_input) ]
-        ch_bwamem2_index // channel: [mandatory] [ val(meta), path(bwamem2_index) ]
+        ch_bwamem_index // channel: [mandatory] [ val(meta), path(bwamem_index) ]
         ch_genome_fasta  // channel: [mandatory] [ val(meta), path(fasta) ]
         ch_genome_fai    // channel: [mandatory] [ val(meta), path(fai) ]
         val_platform     // string:  [mandatory] default: illumina
@@ -22,16 +22,16 @@ workflow ALIGN_BWAMEM2 {
         ch_versions = Channel.empty()
 
         // Map, sort, and index
-        BWAMEM2_MEM ( ch_reads_input, ch_bwamem2_index, true )
+        BWA_MEM ( ch_reads_input, ch_bwamem2_index, true )
 
-        SAMTOOLS_INDEX_ALIGN ( BWAMEM2_MEM.out.bam )
+        SAMTOOLS_INDEX_ALIGN ( BWA_MEM.out.bam )
 
         // Get stats for each demultiplexed read pair.
-        bam_sorted_indexed = BWAMEM2_MEM.out.bam.join(SAMTOOLS_INDEX_ALIGN.out.bai, failOnMismatch:true, failOnDuplicate:true)
+        bam_sorted_indexed = BWA_MEM.out.bam.join(SAMTOOLS_INDEX_ALIGN.out.bai, failOnMismatch:true, failOnDuplicate:true)
         SAMTOOLS_STATS ( bam_sorted_indexed, [[],[]] )
 
         // Merge multiple lane samples and index
-        BWAMEM2_MEM.out.bam
+        BWA_MEM.out.bam
             .map{ meta, bam ->
                     new_id   = meta.id.split('_')[0]
                     new_meta = meta + [id:new_id, read_group:"\'@RG\\tID:" + new_id + "\\tPL:" + val_platform + "\\tSM:" + new_id + "\'"]
@@ -52,7 +52,7 @@ workflow ALIGN_BWAMEM2 {
         MARKDUPLICATES ( prepared_bam , ch_genome_fasta, ch_genome_fai )
         SAMTOOLS_INDEX_MARKDUP ( MARKDUPLICATES.out.bam )
 
-        ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions.first())
+        ch_versions = ch_versions.mix(BWA_MEM.out.versions.first())
         ch_versions = ch_versions.mix(SAMTOOLS_INDEX_ALIGN.out.versions.first())
         ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions.first())
         ch_versions = ch_versions.mix(SAMTOOLS_MERGE.out.versions.first())
