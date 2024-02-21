@@ -1,10 +1,13 @@
-name: bwa_index
-description: Create BWA index for reference genome
+name: bwa_mem
+description: Performs fastq alignment to a fasta reference using BWA
 keywords:
-  - index
-  - fasta
-  - genome
-  - reference
+  - mem
+  - bwa
+  - alignment
+  - map
+  - fastq
+  - bam
+  - sam
 tools:
   - bwa:
       description: |
@@ -18,13 +21,14 @@ input:
   - meta:
       type: map
       description: |
-        Groovy Map containing reference information.
+        Groovy Map containing sample information
         e.g. [ id:'test', single_end:false ]
-  - fasta:
+  - reads:
       type: file
-      description: Input genome fasta file
-output:
-  - meta:
+      description: |
+        List of input FastQ files of size 1 and 2 for single-end and paired-end data,
+        respectively.
+  - meta2:
       type: map
       description: |
         Groovy Map containing reference information.
@@ -32,14 +36,23 @@ output:
   - index:
       type: file
       description: BWA genome index files
-      pattern: "*.{amb,ann,bwt,pac,sa}"
+      pattern: "Directory containing BWA index *.{amb,ann,bwt,pac,sa}"
+  - sort_bam:
+      type: boolean
+      description: use samtools sort (true) or samtools view (false)
+      pattern: "true or false"
+output:
+  - bam:
+      type: file
+      description: Output BAM file containing read alignments
+      pattern: "*.{bam}"
   - versions:
       type: file
       description: File containing software versions
       pattern: "versions.yml"
 authors:
   - "@drpatelh"
-  - "@maxulysse"
+  - "@jeremy1805"
 maintainers:
   - "@drpatelh"
-  - "@maxulysse"
+  - "@jeremy1805"
